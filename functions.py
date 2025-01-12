@@ -270,13 +270,27 @@ def add_lag_features(df):
 
 def null_deviance(counts, e_count=None):
     """score for the null model of predicting the average cell count (as baseline)"""
+
+    # \begin{equation*} \ell(\beta)=\sum_{i=1}^{n}y_{i}\textbf{X}_{i}\beta-\sum_{i=1}^{n}\exp\{\textbf{X}_{i}\beta\}-\sum_{i=1}^{n}\log(y_{i}!). \end{equation*}
+    # so \sum y_i \beta_0 - \sum_i \exp( beta_0) - \sum \log (y_i !)
+
     if e_count is None:
         e_count = counts.mean()
     dev = 2 * (
         counts.when(counts > 0).then(counts * (counts / e_count).log()).otherwise(0)
         + (e_count - counts)
     )
+    # https://stats.stackexchange.com/questions/262469/poisson-deviance-xgboost-vs-gbm-vs-regression
+    # above formula is using stirling approximation for log y!
     return dev.mean()
+
+def null_deviance_new(counts, e_count=None):
+    if e_count is None:
+        e_count = counts.mean()
+    beta_0 = np.log(e_count)
+    log_lik = counts.mean() * beta_0 - e_count  # and we ignore term indep of model
+    dev = -2 * (log_lik)
+    return dev
 
 
 def area(lat_cell, lng_cell):
